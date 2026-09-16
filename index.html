@@ -24,12 +24,18 @@
 <div class="tablewrap"><table><thead><tr><th>Date</th><th>Job #</th><th>Part</th><th>Customer</th><th>Bad Qty</th><th>Problem</th><th>Rejecting</th><th>Rejection Location / Department</th><th>Status</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div></section>
 </main><script>
 const K='lasercraft_ncr_recuts_v2',$=x=>document.getElementById(x);
+const f=$('f'), customer=$('customer'), date=$('date'), job=$('job'), part=$('part'),
+jobQty=$('jobQty'), rejecting=$('rejecting'), badQty=$('badQty'), rejectionDepartment=$('location'),
+signature=$('signature'), description=$('description'), qcComments=$('qcComments'),
+qcSignature=$('qcSignature'), cloud=$('cloud'), rows=$('rows'), search=$('search'), filter=$('filter'),
+openCount=$('open'), partsCount=$('parts'), procCount=$('proc'), doneCount=$('done'),
+pdfOnly=$('pdfOnly'), csv=$('csv'), backup=$('backup');
 const SUPABASE_URL='https://yyeuqlemzxsazdrmyvei.supabase.co';
 const SUPABASE_KEY='sb_publishable_z2IwWxICBS7OLWGaaO-02Q_5HtF5r6d';
 let data=[];
 function day(){let d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}date.value=day();
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function values(){return {customer:customer.value.trim(),date:date.value,job:job.value.trim(),part:part.value.trim(),jobQty:jobQty.value.trim(),rejecting:rejecting.value.trim(),badQty:badQty.value.trim(),location:location.value.trim(),signature:signature.value.trim(),description:description.value.trim(),qcComments:qcComments.value.trim(),qcSignature:qcSignature.value.trim()}}
+function values(){return {customer:customer.value.trim(),date:date.value,job:job.value.trim(),part:part.value.trim(),jobQty:jobQty.value.trim(),rejecting:rejecting.value.trim(),badQty:badQty.value.trim(),location:rejectionDepartment.value.trim(),signature:signature.value.trim(),description:description.value.trim(),qcComments:qcComments.value.trim(),qcSignature:qcSignature.value.trim()}}
 function headers(extra={}){return {'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json',...extra}}
 function cloudState(msg,ok=true){cloud.textContent=msg;cloud.className='cloud '+(ok?'ok':'bad')}
 function fromRow(r){return {id:r.id,customer:r.customer||'',date:r.job_date||'',job:r.job_number||'',part:r.part_number||'',jobQty:r.job_qty??'',rejecting:r.person_rejecting||'',badQty:r.bad_qty??'',location:r.rejection_department||'',signature:r.signature||'',description:r.description||'',qcComments:r.qc_comments||'',qcSignature:r.qc_signature||'',status:r.status||'NEEDS RECUT',created:r.created_at||'',completedDate:r.completed_date||''}}
@@ -38,7 +44,7 @@ async function loadData(silent=false){
  try{
   let r=await fetch(`${SUPABASE_URL}/rest/v1/recut_jobs?select=*&order=created_at.desc`,{headers:headers()});
   if(!r.ok)throw new Error(await r.text());
-  data=(await r.json()).map(fromRow);localStorage.setItem(K,JSON.stringify(data));render();cloudState('Shared schedule connected ✓',true)
+  data=(await r.json()).map(fromRow);localStorage.setItem(K,JSON.stringify(data));render();cloudState('Shared schedule connected ✓ • v3',true)
  }catch(e){
   try{data=JSON.parse(localStorage.getItem(K)||'[]');if(!Array.isArray(data))data=[]}catch(_){data=[]}
   render();cloudState('Cloud unavailable — showing last saved copy',false);if(!silent)console.error(e)
@@ -56,7 +62,7 @@ async function deleteJob(id){
  let r=await fetch(`${SUPABASE_URL}/rest/v1/recut_jobs?id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:headers()});
  if(!r.ok)throw new Error(await r.text())
 }
-function render(){let q=search.value.toLowerCase(),fil=filter.value,a=data.filter(r=>(fil==='ALL'||(fil==='ACTIVE'?r.status!=='COMPLETE':r.status===fil))&&Object.values(r).join(' ').toLowerCase().includes(q));rows.innerHTML=a.length?a.map(r=>`<tr class="${r.status==='COMPLETE'?'completed-row':''}"><td>${esc(r.date)}</td><td><b>${esc(r.job)}</b></td><td>${esc(r.part)}</td><td>${esc(r.customer)}</td><td>${esc(r.badQty)}</td><td>${esc(r.description)}</td><td>${esc(r.rejecting)}</td><td>${esc(r.location)}</td><td class="badge">${esc(r.status)}</td><td>${r.status==='NEEDS RECUT'?`<button data-a="start" data-id="${r.id}">Start</button>`:''} ${r.status!=='COMPLETE'?`<button data-a="done" data-id="${r.id}">Complete</button>`:''} <button data-a="pdf" data-id="${r.id}">PDF</button> <button data-a="del" data-id="${r.id}">Delete</button></td></tr>`).join(''):'<tr><td colspan="10">No recuts in this view.</td></tr>';open.textContent=data.filter(r=>r.status==='NEEDS RECUT').length;parts.textContent=data.filter(r=>r.status!=='COMPLETE').reduce((s,r)=>s+(Number(r.badQty)||0),0);proc.textContent=data.filter(r=>r.status==='IN PROCESS').length;done.textContent=data.filter(r=>r.status==='COMPLETE'&&r.completedDate===day()).length}
+function render(){let q=search.value.toLowerCase(),fil=filter.value,a=data.filter(r=>(fil==='ALL'||(fil==='ACTIVE'?r.status!=='COMPLETE':r.status===fil))&&Object.values(r).join(' ').toLowerCase().includes(q));rows.innerHTML=a.length?a.map(r=>`<tr class="${r.status==='COMPLETE'?'completed-row':''}"><td>${esc(r.date)}</td><td><b>${esc(r.job)}</b></td><td>${esc(r.part)}</td><td>${esc(r.customer)}</td><td>${esc(r.badQty)}</td><td>${esc(r.description)}</td><td>${esc(r.rejecting)}</td><td>${esc(r.location)}</td><td class="badge">${esc(r.status)}</td><td>${r.status==='NEEDS RECUT'?`<button data-a="start" data-id="${r.id}">Start</button>`:''} ${r.status!=='COMPLETE'?`<button data-a="done" data-id="${r.id}">Complete</button>`:''} <button data-a="pdf" data-id="${r.id}">PDF</button> <button data-a="del" data-id="${r.id}">Delete</button></td></tr>`).join(''):'<tr><td colspan="10">No recuts in this view.</td></tr>';openCount.textContent=data.filter(r=>r.status==='NEEDS RECUT').length;partsCount.textContent=data.filter(r=>r.status!=='COMPLETE').reduce((s,r)=>s+(Number(r.badQty)||0),0);procCount.textContent=data.filter(r=>r.status==='IN PROCESS').length;doneCount.textContent=data.filter(r=>r.status==='COMPLETE'&&r.completedDate===day()).length}
 function pdfEscape(s){return String(s??'').replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)').replace(/[^\x20-\x7E]/g,' ')}
 function wrap(s,max){let words=String(s||'').split(/\s+/),lines=[],cur='';for(let w of words){if(!w)continue;if((cur+' '+w).trim().length>max){if(cur)lines.push(cur);cur=w}else cur=(cur+' '+w).trim()}if(cur)lines.push(cur);return lines}
 function fmtDate(s){if(!s)return'';let a=s.split('-');return a.length===3?`${a[1]}/${a[2]}/${a[0]}`:s}
