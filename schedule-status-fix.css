@@ -1,0 +1,4 @@
+/* LaserCraft schedule status workflow */
+td select[data-status-id]{min-height:38px;padding:7px 28px 7px 9px;border:1px solid #888;border-radius:8px;background:#fff;font-size:13px;font-weight:800;white-space:nowrap}
+td select[data-status-id]:disabled{opacity:.6}
+td button[data-a="complete"]{margin-right:5px}
